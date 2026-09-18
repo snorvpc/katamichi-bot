@@ -79,17 +79,8 @@ def parse_records(html):
 
     records = []
 
-    # 実際の案件は
-    #
-    # 出発
-    # 店舗
-    # 店舗名
-    #
-    # から始まる。
-    #
-    # ページ上部にも「出発」はあるが、
-    # その次が「到着」なので対象外。
-
+    # 「出発」「店舗」「店舗名」という並びを
+    # 案件の開始位置として探す
     starts = []
 
     for i in range(len(lines) - 2):
@@ -139,7 +130,7 @@ def parse_records(html):
                 break
 
         # -------------------------
-        # 指定したラベルの値
+        # ラベルの値を取得
         # -------------------------
 
         def get_value(label):
@@ -150,8 +141,6 @@ def parse_records(html):
             except ValueError:
                 return ""
 
-            # ラベル直後の空行などを飛ばし、
-            # 次の実データを取得
             for value in block[pos + 1:]:
 
                 if not value:
@@ -331,24 +320,16 @@ def save_state(state):
 
 def discord_send(record):
 
-    # 今回はembedを使わず、
-    # 普通のDiscordメッセージとして送る。
-
+    # コンパクトな通常メッセージとして送信
     message = (
-        "🚗 **片道GO 新着**\n\n"
-        f"**出発:**\n"
-        f"{record.get('departure', '不明')}\n\n"
-        f"**返却:**\n"
-        f"{record.get('arrival', '不明')}\n\n"
-        f"**期間:**\n"
-        f"{record.get('period', '不明')}\n\n"
-        f"**車種:**\n"
-        f"{record.get('car', '不明')}\n\n"
-        f"**条件:**\n"
-        f"{record.get('condition', '不明')}\n\n"
-        f"**予約電話:**\n"
-        f"{record.get('phone', '不明')}\n\n"
-        f"{URL}"
+        "🚗 **片道GO 新着**\n"
+        f"出発：{record.get('departure', '不明')}\n"
+        f"返却：{record.get('arrival', '不明')}\n"
+        f"期間：{record.get('period', '不明')}　"
+        f"車種：{record.get('car', '不明')}\n"
+        f"条件：{record.get('condition', '不明')}　"
+        f"予約：{record.get('phone', '不明')}\n"
+        f"🔗 [片道GOを見る]({URL})"
     )
 
     payload = {
@@ -362,7 +343,7 @@ def discord_send(record):
         timeout=20,
     )
 
-    # Discordレート制限
+    # Discordのレート制限
     if response.status_code == 429:
 
         try:
@@ -377,7 +358,7 @@ def discord_send(record):
             retry_after = 5
 
         print(
-            "Discordレート制限。"
+            f"Discordレート制限。"
             f"{retry_after}秒待機します"
         )
 
@@ -397,7 +378,7 @@ def discord_send(record):
 def main():
 
     # -------------------------
-    # ページ取得
+    # 片道GOページ取得
     # -------------------------
 
     response = requests.get(
@@ -425,7 +406,7 @@ def main():
     )
 
     # -------------------------
-    # 現在の案件
+    # 現在掲載中の案件
     # -------------------------
 
     current = {
@@ -472,7 +453,7 @@ def main():
         return
 
     # -------------------------
-    # 新着案件
+    # 新着案件を探す
     # -------------------------
 
     new_ids = [
@@ -482,7 +463,7 @@ def main():
     ]
 
     # -------------------------
-    # 通知
+    # 新着通知
     # -------------------------
 
     for record_id in new_ids:
@@ -499,7 +480,7 @@ def main():
         discord_send(record)
 
     # -------------------------
-    # 状態保存
+    # 現在の状態を保存
     # -------------------------
 
     save_state(
